@@ -26,13 +26,32 @@ async function main() {
 
   const app = express();
 
+  const allowedOrigins = [
+    "https://itroom.vercel.app",
+    "https://itroom.vercel.app/",
+  ];
+
   app.use(
     cors({
-      origin: ENV.CLIENT_ORIGIN,
+      origin: (origin, callback) => {
+        // allow server-to-server / Postman (no origin)
+        if (!origin) return callback(null, true);
+
+        // allow your production domain
+        if (origin === "https://itroom.vercel.app") return callback(null, true);
+
+        // allow vercel preview URLs: https://itroom-xxxxx-sterlings-projects-xxxx.vercel.app
+        if (/^https:\/\/itroom-[a-z0-9-]+\.vercel\.app$/.test(origin))
+          return callback(null, true);
+
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true,
-      exposedHeaders: ["Content-Disposition"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-API-KEY"],
     }),
   );
+  app.options("*", cors());
   app.use(express.json());
   app.use(cookieParser());
   app.use(auditContext);
