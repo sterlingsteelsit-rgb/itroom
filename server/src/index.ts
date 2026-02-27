@@ -26,32 +26,21 @@ async function main() {
 
   const app = express();
 
-  const allowedOrigins = [
-    "https://itroom.vercel.app",
-    "https://itroom.vercel.app/",
-  ];
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (origin === "https://itroom.vercel.app") return callback(null, true);
+      if (/^https:\/\/itroom-[a-z0-9-]+\.vercel\.app$/.test(origin))
+        return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-API-KEY"],
+  };
 
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // allow server-to-server / Postman (no origin)
-        if (!origin) return callback(null, true);
-
-        // allow your production domain
-        if (origin === "https://itroom.vercel.app") return callback(null, true);
-
-        // allow vercel preview URLs: https://itroom-xxxxx-sterlings-projects-xxxx.vercel.app
-        if (/^https:\/\/itroom-[a-z0-9-]+\.vercel\.app$/.test(origin))
-          return callback(null, true);
-
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
-      },
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-API-KEY"],
-    }),
-  );
-  app.options("*", cors());
+  app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
   app.use(express.json());
   app.use(cookieParser());
   app.use(auditContext);
