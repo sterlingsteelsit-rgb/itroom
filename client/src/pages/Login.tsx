@@ -19,19 +19,52 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<"idle" | "signing" | "offline">("idle");
+
+  function isNetworkError(err: unknown) {
+    const msg =
+      err instanceof Error
+        ? err.message.toLowerCase()
+        : String(err).toLowerCase();
+
+    return (
+      msg.includes("failed to fetch") ||
+      msg.includes("networkerror") ||
+      msg.includes("network request failed") ||
+      msg.includes("cors") ||
+      msg.includes("timeout") ||
+      msg.includes("load failed")
+    );
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
+    setStatus("idle");
+
+    const id = identifier.trim();
+
+    if (!id || !password) {
+      setErr("Please enter username/email and password.");
+      return;
+    }
 
     try {
-      await signIn(identifier.trim(), password);
+      setStatus("signing");
+
+      await signIn(id, password);
+
       nav("/", { replace: true });
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setErr(e.message);
+      if (isNetworkError(e)) {
+        setStatus("offline");
+        setErr(
+          "Can't connect to the server. Please check your internet connection or try again in a moment.",
+        );
       } else {
-        setErr("Login failed. Please check your credentials.");
+        setStatus("idle");
+        if (e instanceof Error) setErr(e.message);
+        else setErr("Login failed. Please check your credentials.");
       }
     }
   }
@@ -146,7 +179,7 @@ export default function Login() {
               className="w-full relative group overflow-hidden rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 p-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex items-center justify-center space-x-2 w-full py-3 px-4 rounded-lg bg-slate-950/90 group-hover:bg-slate-950/70 transition-all">
-                {loading ? (
+                {loading || status === "signing" ? (
                   <>
                     <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                     <span className="text-blue-400 font-medium">

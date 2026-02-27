@@ -32,6 +32,8 @@ async function main() {
       if (origin === "https://itroom.vercel.app") return callback(null, true);
       if (/^https:\/\/itroom-[a-z0-9-]+\.vercel\.app$/.test(origin))
         return callback(null, true);
+      // Allow localhost (any port)
+      if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
       return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
